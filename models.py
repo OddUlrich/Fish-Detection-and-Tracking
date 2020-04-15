@@ -7,12 +7,13 @@ Created on Wed Apr 15 16:05:38 2020
 
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 import numpy as np
 
 from collections import defaultdict
 
 from parse_config import parse_model_config
-
+from utils import build_targets
 
 def generate_modules(layers):
     """
@@ -236,9 +237,109 @@ class YOLOLayer(nn.Module):
         self.ce_loss = nn.CrossEntropyLoss()            # Class loss
     
     def forward(self, x, targets=None):
+        num_anchor = self.num_anchors
+        num_b = x.size(0)
+        grid_size = x.size(2)
+        stride = self.image_dim / grid_size
         
+        # Tensors for cuda support
+        FloatTensor = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
+        LongTensor = torch.cuda.LongTensor if x.is_cuda else torch.LongTensor
+        ByteTensor = torch.cuda.ByteTensor if x.is_cuda else torch.ByteTensor
         
-        pass
+        prediction = x.view(num_b, num_anchor, self.bbox_attrs, grid_size, grid_size).permute(0, 1, 3, 4, 2).contiguous()
+        
+        # Extract outputs.
+        x = torch.sigmoid(prediction[..., 0])
+        y = torch.sigmoid(prediction[..., 1])
+        weight = prediction[..., 2]
+        height = prediction[..., 3]
+        pred_conf = torch.sigmoid(prediction[..., 4])
+        pred_cls = torch.sigmoid(prediction[..., 5:])
+        
+        # Calculate offsets for each grid.
+        grid_x = torch.arange(grid_size).repeat(grid_size, 1).view([1, 1, grid_size, grid_size]).type(FloatTensor)
+        grid_y = torch.arange(grid_size).repeat(grid_size, 1).t().view([1, 1, grid_size, grid_size]).type(FloatTensor)
+        scaled_anchors = FloatTensor([(a_w / stride, a_h / stride) for a_w, a_h in self.anchors])
+        anchor_w = scaled_anchors[:, 0:1].view((1, num_anchor, 1, 1))
+        anchor_h = scaled_anchors[:, 1:2].view((1, num_anchor, 1, 1))
+        
+        # Offset adjustment and scale with anchors
+        pred_boxes = FloatTensor(prediction[..., :4].shape)
+        pred_boxes[..., 0] = x.data + grid_x
+        pred_boxes[..., 1] = y.data + grid_y
+        pred_boxes[..., 2] = torch.exp(weight.data) * anchor_w
+        pred_boxes[..., 3] = torch.exp(height.data) * anchor_h
+        
+        # Training
+        if targets is not None:
+            if x.is_cuda:
+                self.mse_loss = self.mse_loss.cuda()
+                self.bce_loss = self.bce_loss.cuda()
+                self.ce_loss = self.ce_loss.cuda()
+            
+            nGT, nCorrect, mask, conf_mask, tx, ty, tw, th, tconf, tcls = build_targets(
+                pred_boxes=pred_boxes.cpu().data,
+                pred_conf=pred_conf.cpu().data,
+                pred_cls=pred_cls.cpu().data,
+                target=targets.cpu().data,
+                anchors=scaled_anchors.cpu().data,
+                num_anchors=num_anchor,
+                num_classes=self.num_classes,
+                grid_size=grid_size,
+                ignore_thres=self.ignore_thres,
+                img_dim=self.image_dim,
+            )
+
+            # Confused matrix.
+            nProposals = int((pred_conf > 0.5).sum().item())
+            recall = float(nCorrect / nGT) if nGT else 1
+            precision = float(nCorrect / nProposals)
+            
+            # Handle masks and target variables.
+            mask = Variable(mask.type(ByteTensor))
+            conf_mask = Variable(conf_mask.type(ByteTensor))
+
+            tx = Variable(tx.type(FloatTensor), requires_grad=False)
+            ty = Variable(ty.type(FloatTensor), requires_grad=False)
+            tw = Variable(tw.type(FloatTensor), requires_grad=False)
+            th = Variable(th.type(FloatTensor), requires_grad=False)
+            tconf = Variable(tconf.type(FloatTensor), requires_grad=False)
+            tcls = Variable(tcls.type(LongTensor), requires_grad=False)
+            
+            # Mask outputs to ignore non-existing objects
+            conf_mask_true = mask
+            conf_mask_false = conf_mask - mask
+
+            loss_x = self.mse_loss(x[mask], tx[mask])
+            loss_y = self.mse_loss(y[mask], ty[mask])
+            loss_w = self.mse_loss(weight[mask], tw[mask])
+            loss_h = self.mse_loss(height[mask], th[mask])
+            
+            loss_conf_false = self.bce_loss(pred_conf[conf_mask_false], tconf[conf_mask_false])
+            loss_conf_true = self.bce_loss(pred_conf[conf_mask_true], tconf[conf_mask_true])
+            loss_conf = loss_conf_false + loss_conf_true
+                    
+            loss_cls = (1 / num_b) * self.ce_loss(pred_cls[mask], torch.argmax(tcls[mask], 1))
+            loss = loss_x + loss_y + loss_w + loss_h + loss_conf + loss_cls
+            
+            return (
+                loss,
+                loss_x.item(),
+                loss_y.item(),
+                loss_w.item(),
+                loss_h.item(),
+                loss_conf.item(),
+                loss_cls.item(),
+                recall,
+                precision,
+            )
+            
+        # Testing.
+        else:
+            return torch.cat((pred_boxes.view(num_b, -1, 4) * stride,
+                              pred_conf.view(num_b, -1, 1),
+                              pred_cls.view(num_b, -1, self.num_classes)), -1)
         
         
         
