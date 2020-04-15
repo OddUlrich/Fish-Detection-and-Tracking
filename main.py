@@ -33,7 +33,7 @@ nms_threshold = 0.4     # non-maximum suppression threshold.
 
 model = Darknet(config_path, img_size)
 model.load_weights(weights_path)
-model.cuda()
+#model.cuda()
 model.eval()
 classes = load_classes(class_path)
 Tensor = torch.cuda.FloatTensor

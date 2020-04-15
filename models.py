@@ -32,30 +32,30 @@ def generate_modules(layers):
     for i, layer in enumerate(layers):
         modules = nn.Sequential()
         
-        if layers['type'] == 'convolutional':
-            bn = int(layers['batch_normalize'])
-            filters = int(layers['filters'])
-            kernel_size = int(layers['size'])
-            pad = (kernel_size-1) // 2 if int(layers['pad']) else 0
+        if layer['type'] == 'convolutional':
+            bn = int(layer['batch_normalize'])
+            filters = int(layer['filters'])
+            kernel_size = int(layer['size'])
+            pad = (kernel_size-1) // 2 if int(layer['pad']) else 0
             modules.add_module(
                 "conv_%d" % i,
                 nn.Conv2d(
                     in_channels=output_filters[-1],
                     out_channels=filters,
                     kernel_size=kernel_size,
-                    stride=int(layers['stride']),
+                    stride=int(layer['stride']),
                     padding=pad,
                     bias=not bn,
                 ),
             )
             if bn:
                 modules.add_module("batch_norm_%d" % i, nn.BatchNorm2d(filters))
-            if layers['activation'] == "leaky":
+            if layer['activation'] == "leaky":
                 modules.add_module("leaky_%d" % i, nn.LeakyReLU(0.1))
             
-        elif layers['type'] == 'maxpool':
-            kernel_size = int(layers['size'])
-            stride = int(layers['stride'])
+        elif layer['type'] == 'maxpool':
+            kernel_size = int(layer['size'])
+            stride = int(layer['stride'])
             if kernel_size == 2 and stride == 1:
                 padding = nn.ZeroPad2d((0, 1, 0, 1))
                 modules.add_module("_debug_padding_%d" % i, padding)
@@ -66,27 +66,27 @@ def generate_modules(layers):
             )
             modules.add_module("maxpool_%d" % i, maxpool)
             
-        elif layers['type'] == 'upsample':
-            stride = int(layers['stride'])
+        elif layer['type'] == 'upsample':
+            stride = int(layer['stride'])
             upsample = nn.Upsample(scale_factor=stride, mode='nearest')
             modules.add_module("upsample_%d" % i, upsample)
             
-        elif layers['type'] == 'route':
-            layers = [int(x) for x in layers['layers'].split(',')]
-            filters = sum([output_filters[layer_idx] for layer_idx in layers])
+        elif layer['type'] == 'route':
+            layer = [int(x) for x in layer['layers'].split(',')]
+            filters = sum([output_filters[layer_idx] for layer_idx in layer])
             modules.add_module("route_%d" % i, EmptyLayer())
             
-        elif layers['type'] == 'shortcut':
-            filters = output_filters[int(layers['from'])]
+        elif layer['type'] == 'shortcut':
+            filters = output_filters[int(layer['from'])]
             modules.add_module("shortcut_%d" % i, EmptyLayer())
             
-        elif layers['type'] == 'yolo':
-            num_classes = int(layers['classes'])
+        elif layer['type'] == 'yolo':
+            num_classes = int(layer['classes'])
             img_height = int(hyperparams['height'])
             
             # Extract anchors.
-            anchor_idx = [int(x) for x in layers['mask'].split(',')]
-            anchors = [int(x) for x in layers['anchors'].split(',')]
+            anchor_idx = [int(x) for x in layer['mask'].split(',')]
+            anchors = [int(x) for x in layer['anchors'].split(',')]
             anchors = [(anchors[i], anchors[i+1]) for i in range(0, len(anchors), 2)]
             anchors = [anchors[i] for i in anchor_idx]
             
