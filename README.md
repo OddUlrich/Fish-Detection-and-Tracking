@@ -1,4 +1,4 @@
-# fish-detection-wyman
+# Fish detection and tracking
 
 ## Overview
 
