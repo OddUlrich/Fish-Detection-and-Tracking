@@ -12,8 +12,9 @@ import numpy as np
 
 from collections import defaultdict
 
-from parse_config import parse_model_config
-from utils import build_targets
+from tools.parse_config import parse_model_config
+#from tools.parse_config import *
+from tools.utils import build_targets
 
 def generate_modules(layers):
     """
@@ -238,7 +239,7 @@ class YOLOLayer(nn.Module):
     
     def forward(self, x, targets=None):
         num_anchor = self.num_anchors
-        num_b = x.size(0)
+        nB = x.size(0)
         grid_size = x.size(2)
         stride = self.image_dim / grid_size
         
@@ -247,7 +248,7 @@ class YOLOLayer(nn.Module):
         LongTensor = torch.cuda.LongTensor if x.is_cuda else torch.LongTensor
         ByteTensor = torch.cuda.ByteTensor if x.is_cuda else torch.ByteTensor
         
-        prediction = x.view(num_b, num_anchor, self.bbox_attrs, grid_size, grid_size).permute(0, 1, 3, 4, 2).contiguous()
+        prediction = x.view(nB, num_anchor, self.bbox_attrs, grid_size, grid_size).permute(0, 1, 3, 4, 2).contiguous()
         
         # Extract outputs.
         x = torch.sigmoid(prediction[..., 0])
@@ -320,7 +321,7 @@ class YOLOLayer(nn.Module):
             loss_conf_true = self.bce_loss(pred_conf[conf_mask_true], tconf[conf_mask_true])
             loss_conf = loss_conf_false + loss_conf_true
                     
-            loss_cls = (1 / num_b) * self.ce_loss(pred_cls[mask], torch.argmax(tcls[mask], 1))
+            loss_cls = (1 / nB) * self.ce_loss(pred_cls[mask], torch.argmax(tcls[mask], 1))
             loss = loss_x + loss_y + loss_w + loss_h + loss_conf + loss_cls
             
             return (
@@ -337,9 +338,9 @@ class YOLOLayer(nn.Module):
             
         # Testing.
         else:
-            return torch.cat((pred_boxes.view(num_b, -1, 4) * stride,
-                              pred_conf.view(num_b, -1, 1),
-                              pred_cls.view(num_b, -1, self.num_classes)), -1)
+            return torch.cat((pred_boxes.view(nB, -1, 4) * stride,
+                              pred_conf.view(nB, -1, 1),
+                              pred_cls.view(nB, -1, self.num_classes)), -1)
         
         
         

@@ -7,7 +7,7 @@ Created on Wed Apr 15 15:33:27 2020
 
 # Import models and utils.
 from models import Darknet
-from utils import load_classes, non_max_suppression
+from tools.utils import load_classes, non_max_suppression
 
 # Import necessary libraries.
 import time, datetime, random
@@ -23,8 +23,8 @@ from PIL import Image
 
 
 # Load the pre-trained configuration and weights.
-config_path = 'config/yolov3-tiny.cfg'
-#config_path = 'config/yolov3.cfg'
+#config_path = 'config/yolov3-tiny.cfg'
+config_path = 'config/yolov3.cfg'
 weights_path = 'config/yolov3.weights'
 class_path = 'config/coco.names'
 img_size = 416      # image size.
@@ -33,7 +33,7 @@ nms_threshold = 0.4     # non-maximum suppression threshold.
 
 model = Darknet(config_path, img_size)
 model.load_weights(weights_path)
-#model.cuda()
+model.cuda()
 model.eval()
 classes = load_classes(class_path)
 Tensor = torch.cuda.FloatTensor
@@ -54,14 +54,12 @@ def detection(img):
     img_h = round(img.size[1] * ratio)
     
     img_transforms = transforms.Compose(
-            [transforms.Resize((img_h, img_w)),
-             transforms.Pad((max(int((img_h-img_w)/2), 0), max(int((img_w-img_h)/2), 0),
-                             max(int((img_h-img_w)/2), 0), max(int((img_w-img_h)/2), 0)
-                            ),
-                            (128, 128, 128)
-                           ),
-             transforms.ToTensor(),
-            ])
+        [transforms.Resize((img_h, img_w)),
+         transforms.Pad((max(int((img_h-img_w)/2), 0), max(int((img_w-img_h)/2), 0),
+                         max(int((img_h-img_w)/2), 0), max(int((img_w-img_h)/2), 0)),
+                        (128, 128, 128)),
+         transforms.ToTensor(),
+        ])
     
     # Convert image to Tensor.
     img_tensor = img_transforms(img).float()
@@ -77,7 +75,7 @@ def detection(img):
     
     
 # Load image and run detection.
-img_path = "images/fivefish.jpg"
+img_path = "images/street.jpg"
 start_time = time.time()
 
 img = Image.open(img_path)

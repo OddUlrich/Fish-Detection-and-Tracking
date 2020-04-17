@@ -123,13 +123,7 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
 
     return iou
 
-def build_targets(
-    pred_boxes, pred_conf, 
-    pred_cls, target, 
-    anchors, num_anchors, 
-    num_classes, grid_size, 
-    ignore_thres, img_dim
-):
+def build_targets(pred_boxes, pred_conf, pred_cls, target, anchors, num_anchors, num_classes, grid_size, ignore_thres, img_dim):
     nB = target.size(0)
     nA = num_anchors
     nC = num_classes
