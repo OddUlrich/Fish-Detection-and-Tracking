@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 15 16:13:12 2020
 
-@author: Ulrich
-"""
 
 import torch
 import numpy as np 

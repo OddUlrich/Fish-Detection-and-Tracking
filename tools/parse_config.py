@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 15 16:52:54 2020
-
-@author: Ulrich
-"""
-
 
 def parse_model_config(path):
     """
@@ -48,3 +42,36 @@ def parse_model_config(path):
     return layers
 
 
+def parse_data_config(path):
+    """
+    Parses the data configuration and returns the key-value map for configuration.
+    
+    Example:
+        classes=8
+        train=data/train.txt
+        valid=data/val.txt
+
+    Input: 
+        path - configuration file repository.
+    Return:
+        cfg - dictionary with configuration.
+    
+    """
+    cfg = dict()
+    cfg['gpus'] = '0,1,2,3'
+    cfg['num_workers'] = '10'
+    
+    with open(path, 'r') as fp:
+        lines = fp.readlines()
+    for line in lines:
+        line = line.strip()
+        if line == '' or line.startswith('#'):
+            continue
+        key, value = line.split('=')
+        cfg[key.strip()] = value.strip()
+    
+    return cfg
+                                         
+    
+    
+    

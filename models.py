@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 15 16:05:38 2020
 
-@author: Ulrich
-"""
 
 import torch
 import torch.nn as nn
@@ -209,6 +205,29 @@ class Darknet(nn.Module):
                 conv_w = torch.from_numpy(weights[ptr : ptr + num_w]).view_as(conv_layer.weight)
                 conv_layer.weight.data.copy_(conv_w)
                 ptr += num_w
+        
+    def save_weights(self, path, cutoff=-1):
+        fp = open(path, 'wb')
+        self.header_info[3] = self.seen
+        self.header_info.tofile(fp)
+        
+        for i, (layers, module) in enumerate(zip(self.layers[: cutoff], self.module_list[: cutoff])):
+            if layers['type'] == 'convolutional':
+                conv_layer = module[0]
+                # Check whether it has batch normalization.
+                if layers['batch_normalize']:
+                    bn_layer = module[1]
+                    bn_layer.bias.data.cpu().numpy().tofile(fp)
+                    bn_layer.weight.data.cpu().numpy().tofile(fp)
+                    bn_layer.running_mean.data.cpu().numpy().tofile(fp)
+                    bn_layer.running_var.data.cpu().numpy().tofile(fp)
+                else:
+                    conv_layer.bias.data.cpu().numpy().tofile(fp)
+                
+                conv_layer.weight.data.cpu().numpy().tofile(fp)
+        
+        fp.close()
+        
         
 class EmptyLayer(nn.Module):
     """

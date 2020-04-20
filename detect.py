@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 15 15:33:27 2020
-
-@author: Ulrich
-"""
 
 # Import models and utils.
 from models import Darknet
@@ -23,7 +18,6 @@ from PIL import Image
 
 
 # Load the pre-trained configuration and weights.
-#config_path = 'config/yolov3-tiny.cfg'
 config_path = 'config/yolov3.cfg'
 weights_path = 'config/yolov3.weights'
 class_path = 'config/coco.names'
@@ -75,7 +69,7 @@ def detection(img):
     
     
 # Load image and run detection.
-img_path = "images/street.jpg"
+img_path = "data/street.jpg"
 start_time = time.time()
 
 img = Image.open(img_path)
