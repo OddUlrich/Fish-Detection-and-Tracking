@@ -5,7 +5,7 @@ import glob
 import os
 
 # For every 10 images, the first nine are used as training data while the last one is used as validation data.
-cur_dir = "./data/images"
+cur_dir = "data/obj_train_data"
 split_pct = 10
 idx_test = round(100 / split_pct)
 file_train = open("data/train.txt", 'w')

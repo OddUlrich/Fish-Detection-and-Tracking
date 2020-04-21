@@ -9,7 +9,6 @@ import numpy as np
 from collections import defaultdict
 
 from tools.parse_config import parse_model_config
-#from tools.parse_config import *
 from tools.utils import build_targets
 
 def generate_modules(layers):

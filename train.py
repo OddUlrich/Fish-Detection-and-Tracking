@@ -15,24 +15,19 @@ from models import Darknet
 
 
 parser = argparse.ArgumentParser()
-
 parser.add_argument("--epochs", type=int, default=20, help="number of epochs")
 parser.add_argument("--batch_size", type=int, default=16, help="size of each image batch")
 parser.add_argument("--n_cpu", type=int, default=0, help="number of cpu threads used during batch generation")
 parser.add_argument("--is_cuda", type=bool, default=True, help="whether to use cuda")
-parser.add_argument("--class_path", type=str, default="config/fish.names", help="path to class label file")
-parser.add_argument("--data_config_path", type=str, default="config/fish.data", help="path to data config file")
-parser.add_argument("--model_config_path", type=str, default="config/fish.cfg", help="path to data config file")
+parser.add_argument("--class_path", type=str, default="data/obj.names", help="path to class label file")
+parser.add_argument("--data_config_path", type=str, default="data/obj.data", help="path to data config file")
+parser.add_argument("--model_config_path", type=str, default="config/fish.cfg", help="path to model config file")
 parser.add_argument("--weights_path", type=str, default="config/yolov3.weights", help="path to pre-trained weight file")
 parser.add_argument("--checkpoint_interval", type=int, default=1, help="interval between saving model weights")
 parser.add_argument("--checkpoint_dir", type=str, default="checkpoints", help="directory where model checkpoints are saved")
 
-
 args = parser.parse_args()
 #print(args)
-
-# GPU flag.
-cuda = torch.cuda.is_available() and args.is_cuda
 
 # Load data class and data configuration.
 classes = load_classes(args.class_path)
@@ -53,10 +48,11 @@ burn_in = int(hyperparams["burn_in"])
 model = Darknet(args.model_config_path)
 model.load_weights(args.weights_path)
 
+# GPU flag.
+cuda = torch.cuda.is_available() and args.is_cuda
 if cuda:
     model = model.cuda()
 model.train()
-
 
 # Get dataloader and setop tensor and optimizer.
 dataloader = DataLoader(ListDataset(train_path), 
