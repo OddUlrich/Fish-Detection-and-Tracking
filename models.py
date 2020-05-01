@@ -313,7 +313,7 @@ class YOLOLayer(nn.Module):
             # Confused matrix.
             nProposals = int((pred_conf > 0.5).sum().item())
             recall = float(nCorrect / nGT) if nGT else 1
-            precision = float(nCorrect / nProposals)
+            precision = float(nCorrect / nProposals) if nGT else 1
             
             # Handle masks and target variables.
             mask = Variable(mask.type(ByteTensor))

@@ -8,8 +8,8 @@ from torch.utils.data import Dataset
 import numpy as np
 from PIL import Image
 
-#from skimage.transform import resize
-import skimage.transform
+from skimage.transform import resize
+#import skimage.transform
 
 class ListDataset(Dataset):
     def __init__(self, list_path, img_size=416):
@@ -29,19 +29,33 @@ class ListDataset(Dataset):
             
         # Rename files and set the new size for image.
         self.label_files = [os.path.split(path)[0] + "/" + "frame_" + os.path.split(path)[1].replace('.jpg', '.txt').zfill(11) for path in self.img_files]
-        self.img_shape = (img_size, img_size)
+#        self.img_shape = (img_size, img_size)
+        self.img_size = img_size
         self.max_objects = 1
         
     def __getitem__(self, index):
-        # Load the image and convert it into array.
-        img_path = self.img_files[index % len(self.img_files)].rstrip()
-        img = np.array(Image.open(img_path))
-        
-        # Skip images with less than three channels.
-        while len(img.shape) != 3:
-            index += 1
+        while True:
             img_path = self.img_files[index % len(self.img_files)].rstrip()
-            img = np.array(Image.open(img_path))
+            if not os.path.isfile(img_path):
+                index += 1
+                continue
+            else:
+                img = np.array(Image.open(img_path))
+                if len(img.shape) != 3:
+                    index += 1
+                    continue
+                else:
+                    break
+                
+#        # Load the image and convert it into array.
+#        img_path = self.img_files[index % len(self.img_files)].rstrip()
+#        img = np.array(Image.open(img_path))
+#        
+#        # Skip images with less than three channels.
+#        while len(img.shape) != 3:
+#            index += 1
+#            img_path = self.img_files[index % len(self.img_files)].rstrip()
+#            img = np.array(Image.open(img_path))
     
         # Calculate the padding and add it to the image.
         h, w, _ = img.shape
@@ -54,7 +68,9 @@ class ListDataset(Dataset):
         padded_h, padded_w, _ = input_img.shape
     
         # Resize and normalize image, then convert to tensor.
-        input_img = skimage.transform.resize(input_img, (*self.img_shape, 3), mode='reflect')
+#        input_img = resize(input_img, (*self.img_shape, 3), mode='reflect')
+        input_img = resize(input_img, (self.img_size, self.img_size, 3), mode='reflect')
+
         input_img = np.transpose(input_img, (2, 0, 1))
         input_img = torch.from_numpy(input_img).float()
     
@@ -86,7 +102,7 @@ class ListDataset(Dataset):
         # Fill matrix    
         filled_labels = np.zeros((self.max_objects, 5))
         if labels is not None:
-            filled_labels[range(len(labels))[: self.max_object]] = labels[: self.max_objects]
+            filled_labels[range(len(labels))[: self.max_objects]] = labels[: self.max_objects]
         filled_labels = torch.from_numpy(filled_labels)
         
         return img_path, input_img, filled_labels

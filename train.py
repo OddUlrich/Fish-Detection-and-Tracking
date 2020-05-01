@@ -68,7 +68,7 @@ os.makedirs("checkpoints", exist_ok=True)
 for epoch in range(args.epochs):
     for idx_batch, (_, imgs, targets) in enumerate(dataloader):
         imgs = Variable(imgs.type(Tensor))
-        targets = Variable(targets.type(Tensor), requires_gred=False)
+        targets = Variable(targets.type(Tensor), requires_grad=False)
             
         optim.zero_grad()
         loss = model(imgs, targets)
