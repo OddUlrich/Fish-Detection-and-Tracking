@@ -17,7 +17,7 @@ class ListDataset(Dataset):
         Setup the path for images and labels in training dataset or validation dataset.
         The path from list_path should be rename to track label files. 
         Add "frame_" and '0's at the beginning and replace '.jpg' with '.txt' at the end.
-        Bbox file format: data/obj_train_data/frame_000001.txt
+        Bbox file format: data/obj_train_data/1.txt
         
         Input:
             list_path - /data/train.txt, or /data/val.txt. It contains image file directories.
@@ -28,8 +28,7 @@ class ListDataset(Dataset):
             self.img_files = fp.readlines()
             
         # Rename files and set the new size for image.
-        self.label_files = [os.path.split(path)[0] + "/" + "frame_" + os.path.split(path)[1].replace('.jpg', '.txt').zfill(11) for path in self.img_files]
-#        self.img_shape = (img_size, img_size)
+        self.label_files = [path.replace('.jpg', '.txt') for path in self.img_files]
         self.img_size = img_size
         self.max_objects = 1
         
@@ -68,7 +67,6 @@ class ListDataset(Dataset):
         padded_h, padded_w, _ = input_img.shape
     
         # Resize and normalize image, then convert to tensor.
-#        input_img = resize(input_img, (*self.img_shape, 3), mode='reflect')
         input_img = resize(input_img, (self.img_size, self.img_size, 3), mode='reflect')
 
         input_img = np.transpose(input_img, (2, 0, 1))

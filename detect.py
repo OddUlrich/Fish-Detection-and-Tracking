@@ -18,7 +18,7 @@ from PIL import Image
 
 
 # Load the pre-trained configuration and weights.
-config_path = 'config/yolov3.cfg'
+config_path = 'config/fish.cfg'
 weights_path = 'config/yolov3.weights'
 class_path = 'config/coco.names'
 img_size = 416      # image size.
