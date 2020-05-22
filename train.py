@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import argparse
+
+pwd = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(pwd + "..")
 
 import torch
 from torch.utils.data import DataLoader
