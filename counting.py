@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import argparse
-import imutils
-import time
-import os
-
-import cv2
-import numpy as np
 from sort import Sort
+
+import os
+import time
+import argparse
+
+import numpy as np
+import imutils
+import cv2
 
 #files = glob.glob('output/*.png')
 #for f in files:

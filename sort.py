@@ -5,14 +5,16 @@ from __future__ import print_function
 
 #from numba import jit
 import os.path
+import time
+import argparse
+
 import numpy as np
-from skimage import io
-from sklearn.utils.linear_assignment_ import linear_assignment
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-import time
-import argparse
+from skimage import io
+#from sklearn.utils.linear_assignment_ import linear_assignment
+from scipy.optimize import linear_sum_assignment
 from filterpy.kalman import KalmanFilter
 
 #@jit
@@ -108,13 +110,13 @@ class KalmanBoxTracker(object):
         
         if((self.kf.x[6]+self.kf.x[2])<=0):
             self.kf.x[6] *= 0.0
-            self.kf.predict()
-            self.age += 1
+        self.kf.predict()
+        self.age += 1
             
-            if(self.time_since_update>0):
-                self.hit_streak = 0
-                self.time_since_update += 1
-                self.history.append(convert_x_to_bbox(self.kf.x))
+        if(self.time_since_update>0):
+            self.hit_streak = 0
+        self.time_since_update += 1
+        self.history.append(convert_x_to_bbox(self.kf.x))
                 
         return self.history[-1]
 
@@ -136,18 +138,19 @@ def associate_detections_to_trackers(detections,trackers,iou_threshold = 0.3):
     for d,det in enumerate(detections):
         for t,trk in enumerate(trackers):
             iou_matrix[d,t] = iou(det,trk)
-    matched_indices = linear_assignment(-iou_matrix)
+    matched_indices = linear_sum_assignment(-iou_matrix)
 
     unmatched_detections = []
     for d,det in enumerate(detections):
         if(d not in matched_indices[:,0]):
             unmatched_detections.append(d)
+    
     unmatched_trackers = []
     for t,trk in enumerate(trackers):
         if(t not in matched_indices[:,1]):
             unmatched_trackers.append(t)
 
-      #filter out matched with low IOU
+    #filter out matched with low IOU
     matches = []
     for m in matched_indices:
         if(iou_matrix[m[0],m[1]]<iou_threshold):
@@ -161,8 +164,6 @@ def associate_detections_to_trackers(detections,trackers,iou_threshold = 0.3):
         matches = np.concatenate(matches,axis=0)
 
     return matches, np.array(unmatched_detections), np.array(unmatched_trackers)
-
-
 
 class Sort(object):
     def __init__(self,max_age=1,min_hits=3):

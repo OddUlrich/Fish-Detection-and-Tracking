@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import torch
-#from torch.utils.data import DataLoader
-from torchvision import transforms
-from torch.autograd import Variable
-
-import numpy as np
-import matplotlib.pyplot as plt
-#import matplotlib.patches as patches
-from PIL import Image
-import cv2
-
 from models import Darknet
 from tools.utils import load_classes, non_max_suppression
 from sort import Sort
+
+import time
+import torch
+from torchvision import transforms
+from torch.autograd import Variable
+import numpy as np
+import matplotlib.pyplot as plt
+
+from PIL import Image
+import cv2
 
 config_path = 'config/yolov3.cfg'
 weights_path = 'config/yolov3.weights'
@@ -53,23 +52,36 @@ def detect_image(img):
 
 
 
-videopath = 'data/sample_720p.mp4'
-
-#from IPython.display import clear_output
+videopath = 'data/sample_720p.avi'
 
 cmap = plt.get_cmap('tab20b')
-colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
+colors = [(255,0,0),(0,255,0),(0,0,255),(255,0,255),(128,0,0),(0,128,0),(0,0,128),(128,0,128),(128,128,0),(0,128,128)]
 
-# initialize Sort object and video capture
 vid = cv2.VideoCapture(videopath)
 mot_tracker = Sort() 
 
-for ii in range(40):
+cv2.namedWindow('Stream',cv2.WINDOW_NORMAL)
+cv2.resizeWindow('Stream', (800,600))
+
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+ret,frame = vid.read()
+vw = frame.shape[1]
+vh = frame.shape[0]
+print ("Video size", vw,vh)
+outvideo = cv2.VideoWriter(videopath.replace(".avi", "-det.avi"),fourcc,20.0,(vw,vh))
+
+frames = 0
+starttime = time.time()
+while(True):
     ret, frame = vid.read()
+    if not ret:
+        break
+    frames += 1
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     pilimg = Image.fromarray(frame)
     detections = detect_image(pilimg)
 
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
     img = np.array(pilimg)
     pad_x = max(img.shape[0] - img.shape[1], 0) * (img_size / max(img.shape))
     pad_y = max(img.shape[1] - img.shape[0], 0) * (img_size / max(img.shape))
@@ -85,21 +97,21 @@ for ii in range(40):
             box_w = int(((x2 - x1) / unpad_w) * img.shape[1])
             y1 = int(((y1 - pad_y // 2) / unpad_h) * img.shape[0])
             x1 = int(((x1 - pad_x // 2) / unpad_w) * img.shape[1])
-
             color = colors[int(obj_id) % len(colors)]
-            color = [i * 255 for i in color]
             cls = classes[int(cls_pred)]
             cv2.rectangle(frame, (x1, y1), (x1+box_w, y1+box_h), color, 4)
-            cv2.rectangle(frame, (x1, y1-35), (x1+len(cls)*19+60, y1), color, -1)
+            cv2.rectangle(frame, (x1, y1-35), (x1+len(cls)*19+80, y1), color, -1)
             cv2.putText(frame, cls + "-" + str(int(obj_id)), (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 3)
 
-    fig = plt.figure(figsize=(12, 8))
-    fig.title("Video Object Tracking")
-    fig.imshow(frame)
-    plt.show()
-#    clear_output(wait=True)
+    cv2.imshow('Stream', frame)
+    outvideo.write(frame)
+    ch = 0xFF & cv2.waitKey(1)
+    if ch == 27:
+        break
 
-
-
+totaltime = time.time()-starttime
+print(frames, "frames", totaltime/frames, "s/frame")
+cv2.destroyAllWindows()
+outvideo.release()
 
 
