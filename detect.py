@@ -69,7 +69,7 @@ def detection(img):
     
     
 # Load image and run detection.
-img_path = "data/street.jpg"
+img_path = "data/fivefish.jpg"
 start_time = time.time()
 
 img = Image.open(img_path)
