@@ -33,7 +33,7 @@ import glob
 #    print("Done!")
 
 
-# Remove useless images.
+# Remove useless images / textfile.
 #folder = "demo/"
 #src_path = folder + "obj_train_data/"
 #cnt = 0
